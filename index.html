@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Opener & Closer — Mon–Sat Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0b0d12;--bg2:#12151d;--card:#171a24;--card2:#1e2230;--border:#2a2f3f;
+    --text:#eef1f8;--muted:#8a93a8;--accent:#7c5cff;--accent2:#22d3ee;
+    --open:#f59e0b;--close:#34d399;--danger:#ef4444;--shadow:0 10px 40px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(1200px 600px at 10% -10%, #1a1f3a 0%, transparent 60%),radial-gradient(900px 500px at 110% 10%, #1a2a3a 0%, transparent 60%),var(--bg);color:var(--text);min-height:100vh;padding:24px}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:800;font-size:18px;color:#fff;box-shadow:0 8px 24px rgba(124,92,255,.4)}
+  h1{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  button{font-family:inherit;font-size:14px;font-weight:600;padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;transition:all .15s ease}
+  button:hover{transform:translateY(-1px);border-color:#3a4158}
+  button.primary{background:linear-gradient(135deg,var(--accent),#5b3fe0);border:none;color:#fff;box-shadow:0 6px 18px rgba(124,92,255,.35)}
+  button.primary:hover{filter:brightness(1.08)}
+  button.ghost{background:transparent}
+  button.danger{color:var(--danger);border-color:rgba(239,68,68,.3)}
+  button:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .grid{display:grid;grid-template-columns:320px 1fr;gap:20px}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+  .card h2{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent2)}
+  .staff-input{display:flex;gap:8px;margin-bottom:14px}
+  .staff-input input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px}
+  .staff-input input:focus{outline:none;border-color:var(--accent)}
+  .staff-list{list-style:none;display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto}
+  .staff-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg2);border:1px solid var(--border)}
+  .staff-name{font-weight:500;font-size:14px;display:flex;align-items:center;gap:8px}
+  .avatar{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:700;font-size:12px;color:#fff}
+  .staff-item button{padding:6px 10px;font-size:12px}
+  .legend{display:flex;gap:14px;margin-top:16px;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .legend i{width:10px;height:10px;border-radius:3px}
+  .schedule{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:700px){.schedule{grid-template-columns:1fr 1fr}}
+  .day{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .day-head{display:flex;align-items:center;justify-content:space-between}
+  .day-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px}
+  .day-date{color:var(--muted);font-size:12px}
+  .slot{border-radius:12px;padding:12px;border:1px dashed var(--border);background:var(--bg2);min-height:78px;display:flex;flex-direction:column;gap:8px;transition:all .15s}
+  .slot.filled{border-style:solid}
+  .slot.open-slot{border-color:rgba(245,158,11,.4)}
+  .slot.close-slot{border-color:rgba(52,211,153,.4)}
+  .slot.open-slot.filled{background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(245,158,11,.04));border-color:rgba(245,158,11,.6)}
+  .slot.close-slot.filled{background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(52,211,153,.04));border-color:rgba(52,211,153,.6)}
+  .slot-label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+  .slot-label .icon{font-size:14px}
+  .slot.open-slot .slot-label{color:var(--open)}
+  .slot.close-slot .slot-label{color:var(--close)}
+  .slot-person{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .slot-empty{color:var(--muted);font-size:13px;font-style:italic}
+  .slot select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;cursor:pointer}
+  .slot select:focus{outline:none;border-color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .stat .n{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700}
+  .stat .l{color:var(--muted);font-size:12px;margin-top:2px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card2);border:1px solid var(--border);padding:12px 18px;border-radius:10px;font-size:14px;transition:transform .25s ease;box-shadow:var(--shadow);z-index:50}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;place-items:center;z-index:40}
+  .modal-backdrop.show{display:grid}
+  .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;width:min(420px,90vw)}
+  .modal h3{margin-bottom:12px;font-size:18px}
+  .modal input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);margin-bottom:14px}
+  .modal .row{display:flex;gap:10px;justify-content:flex-end}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:18px 8px;border:1px dashed var(--border);border-radius:10px}
+  footer{margin-top:32px;text-align:center;color:var(--muted);font-size:12px}
+  .loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:100;font-size:16px;color:var(--muted)}
+  .loading.hidden{display:none}
+  @media print{body{background:#fff;color:#000;padding:0}.card,.day,.stat{box-shadow:none;border:1px solid #ccc}button,.actions,.staff-input{display:none}}
+</style>
+</head>
+<body>
+<div class="loading" id="loading">Connecting to Supabase…</div>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">O/C</div>
+      <div>
+        <h1>Opener &amp; Closer</h1>
+        <div class="sub">Weekly schedule · Monday – Saturday · synced to Supabase</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="ghost" id="resetBtn">Reset week</button>
+      <button class="ghost" id="autoBtn">Auto-assign</button>
+      <button class="primary" id="printBtn">Print / Export</button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="statStaff">0</div><div class="l">Staff members</div></div>
+    <div class="stat"><div class="n" id="statFilled">0/12</div><div class="l">Slots filled</div></div>
+    <div class="stat"><div class="n" id="statWeek">—</div><div class="l">Week of</div></div>
+  </div>
+
+  <div class="grid">
+    <aside class="card">
+      <h2><span class="dot"></span>Staff</h2>
+      <div class="staff-input">
+        <input id="nameInput" placeholder="Add staff member…" />
+        <button class="primary" id="addBtn">Add</button>
+      </div>
+      <ul class="staff-list" id="staffList"></ul>
+      <div class="empty" id="staffEmpty">No staff yet. Add someone above.</div>
+      <div class="legend">
+        <span><i style="background:var(--open)"></i>Opener</span>
+        <span><i style="background:var(--close)"></i>Closer</span>
+      </div>
+    </aside>
+    <section>
+      <div class="schedule" id="schedule"></div>
+    </section>
+  </div>
+
+  <footer>Opener &amp; Closer · Mon–Sat · data stored in Supabase</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://wcnuurwehcmnlcokbgnd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_gP0xUeOAkMZ38hxHNlsmxw_sOVVfF0b';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const COLORS = ['#7c5cff','#22d3ee','#f59e0b','#34d399','#ef4444','#ec4899','#a78bfa','#fb923c'];
+
+let state = { staff: [], schedule: {} };
+DAYS.forEach(d=> state.schedule[d]={open:null,close:null});
+
+function initials(name){ return name.trim().split(/\s+/).map(p=>p[0]).join('').slice(0,2).toUpperCase(); }
+function colorFor(name){ let h=0; for(let i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))>>>0; return COLORS[h%COLORS.length]; }
+function escapeHtml(s){ return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2600); }
+
+async function loadAll(){
+  const {data:staffRows,error:e1} = await sb.from('staff').select('name').order('created_at');
+  if(e1){ toast('Staff load error: '+e1.message); throw e1; }
+  state.staff = (staffRows||[]).map(r=>r.name);
+
+  const {data:schedRows,error:e2} = await sb.from('schedule').select('day,role,staff_name');
+  if(e2){ toast('Schedule load error: '+e2.message); throw e2; }
+  DAYS.forEach(d=> state.schedule[d]={open:null,close:null});
+  (schedRows||[]).forEach(r=>{
+    if(state.schedule[r.day]) state.schedule[r.day][r.role=== 'open'?'open':'close'] = r.staff_name;
+  });
+}
+
+async function upsertSchedule(day, role, name){
+  const {error} = await sb.from('schedule').upsert({day, role, staff_name: name}, {onConflict:'day,role'});
+  if(error){ toast('Save error: '+error.message); return false; }
+  return true;
+}
+
+async function addStaff(name){
+  const {error} = await sb.from('staff').insert({name});
+  if(error){ toast('Add error: '+error.message); return false; }
+  state.staff.push(name);
+  return true;
+}
+async function removeStaff(name){
+  // clear assignments
+  for(const d of DAYS){
+    if(state.schedule[d].open===name){ state.schedule[d].open=null; await upsertSchedule(d,'open',null); }
+    if(state.schedule[d].close===name){ state.schedule[d].close=null; await upsertSchedule(d,'close',null); }
+  }
+  const {error} = await sb.from('staff').delete().eq('name',name);
+  if(error){ toast('Delete error: '+error.message); return false; }
+  state.staff = state.staff.filter(n=>n!==name);
+  return true;
+}
+
+function renderStaff(){
+  const list=document.getElementById('staffList');
+  const empty=document.getElementById('staffEmpty');
+  list.innerHTML='';
+  state.staff.forEach((name,i)=>{
+    const li=document.createElement('li');
+    li.className='staff-item';
+    li.innerHTML=`
+      <div class="staff-name">
+        <div class="avatar" style="background:${colorFor(name)}">${initials(name)}</div>
+        <span>${escapeHtml(name)}</span>
+      </div>
+      <button class="danger" data-name="${escapeHtml(name)}">Remove</button>
+    `;
+    list.appendChild(li);
+  });
+  empty.style.display = state.staff.length? 'none':'block';
+  document.getElementById('statStaff').textContent = state.staff.length;
+  list.querySelectorAll('button.danger').forEach(b=>{
+    b.onclick=async()=>{
+      b.disabled=true;
+      const ok=await removeStaff(b.dataset.name);
+      if(ok){ render(); toast('Removed '+b.dataset.name); }
+      else b.disabled=false;
+    };
+  });
+}
+
+function optionsFor(current){
+  let html='<option value="">— unassigned —</option>';
+  state.staff.forEach(n=>{
+    const sel = n===current?'selected':'';
+    html+=`<option value="${escapeHtml(n)}" ${sel}>${escapeHtml(n)}</option>`;
+  });
+  return html;
+}
+
+function renderSchedule(){
+  const wrap=document.getElementById('schedule');
+  wrap.innerHTML='';
+  let filled=0;
+  DAYS.forEach(day=>{
+    const d=state.schedule[day];
+    const card=document.createElement('div');
+    card.className='day';
+    card.innerHTML=`
+      <div class="day-head">
+        <div class="day-name">${day}</div>
+        <div class="day-date">${dayDate(day)}</div>
+      </div>
+      <div class="slot open-slot ${d.open?'filled':''}">
+        <div class="slot-label"><span class="icon">🌅</span> Opener</div>
+        ${d.open?`<div class="slot-person"><div class="avatar" style="background:${colorFor(d.open)}">${initials(d.open)}</div>${escapeHtml(d.open)}</div>`:`<div class="slot-empty">No one assigned</div>`}
+        <select data-day="${day}" data-role="open">${optionsFor(d.open)}</select>
+      </div>
+      <div class="slot close-slot ${d.close?'filled':''}">
+        <div class="slot-label"><span class="icon">🌙</span> Closer</div>
+        ${d.close?`<div class="slot-person"><div class="avatar" style="background:${colorFor(d.close)}">${initials(d.close)}</div>${escapeHtml(d.close)}</div>`:`<div class="slot-empty">No one assigned</div>`}
+        <select data-day="${day}" data-role="close">${optionsFor(d.close)}</select>
+      </div>
+    `;
+    wrap.appendChild(card);
+    if(d.open) filled++;
+    if(d.close) filled++;
+  });
+  document.getElementById('statFilled').textContent = filled+'/12';
+  wrap.querySelectorAll('select').forEach(sel=>{
+    sel.onchange=async()=>{
+      const day=sel.dataset.day; const role=sel.dataset.role;
+      const val=sel.value||null;
+      sel.disabled=true;
+      const ok=await upsertSchedule(day,role,val);
+      if(ok){ state.schedule[day][role]=val; render(); toast('Updated '+day); }
+      else sel.disabled=false;
+    };
+  });
+}
+
+function dayDate(day){
+  const now=new Date();
+  const monday=new Date(now);
+  const diff=(now.getDay()+6)%7;
+  monday.setDate(now.getDate()-diff);
+  const idx=DAYS.indexOf(day);
+  const d=new Date(monday); d.setDate(monday.getDate()+idx);
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+function renderWeek(){
+  const now=new Date();
+  const monday=new Date(now);
+  const diff=(now.getDay()+6)%7;
+  monday.setDate(now.getDate()-diff);
+  document.getElementById('statWeek').textContent = monday.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+
+function render(){ renderStaff(); renderSchedule(); renderWeek(); }
+
+async function autoAssign(){
+  if(state.staff.length<2){ toast('Add at least 2 staff members'); return; }
+  const btn=document.getElementById('autoBtn'); btn.disabled=true;
+  DAYS.forEach(d=>{ state.schedule[d]={open:null,close:null}; });
+  const slots=[];
+  DAYS.forEach(d=>{ slots.push({day:d,role:'open'}); slots.push({day:d,role:'close'}); });
+  const counts=Object.fromEntries(state.staff.map(n=>[n,0]));
+  for(const s of slots){
+    const usedToday=new Set();
+    if(state.schedule[s.day].open) usedToday.add(state.schedule[s.day].open);
+    if(state.schedule[s.day].close) usedToday.add(state.schedule[s.day].close);
+    const cands=state.staff.filter(n=>!usedToday.has(n)).sort((a,b)=>counts[a]-counts[b]);
+    if(cands.length){
+      const pick=cands[0];
+      state.schedule[s.day][s.role]=pick;
+      counts[pick]++;
+    }
+  }
+  // persist all
+  let ok=true;
+  for(const d of DAYS){
+    if(!(await upsertSchedule(d,'open',state.schedule[d].open))) ok=false;
+    if(!(await upsertSchedule(d,'close',state.schedule[d].close))) ok=false;
+  }
+  btn.disabled=false;
+  render();
+  toast(ok?'Auto-assigned schedule':'Some saves failed');
+}
+
+document.getElementById('addBtn').onclick=async()=>{
+  const inp=document.getElementById('nameInput');
+  const name=inp.value.trim();
+  if(!name){ toast('Enter a name'); return; }
+  if(state.staff.includes(name)){ toast('Already added'); return; }
+  const btn=document.getElementById('addBtn'); btn.disabled=true;
+  const ok=await addStaff(name);
+  btn.disabled=false;
+  if(ok){ inp.value=''; render(); toast('Added '+name); }
+};
+document.getElementById('nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('addBtn').click(); });
+
+document.getElementById('resetBtn').onclick=async()=>{
+  if(!confirm('Reset entire week schedule?')) return;
+  const btn=document.getElementById('resetBtn'); btn.disabled=true;
+  for(const d of DAYS){
+    state.schedule[d]={open:null,close:null};
+    await upsertSchedule(d,'open',null);
+    await upsertSchedule(d,'close',null);
+  }
+  btn.disabled=false;
+  render(); toast('Week reset');
+};
+document.getElementById('autoBtn').onclick=autoAssign;
+document.getElementById('printBtn').onclick=()=>window.print();
+
+(async()=>{
+  try{
+    await loadAll();
+    document.getElementById('loading').classList.add('hidden');
+    render();
+  }catch(e){
+    document.getElementById('loading').textContent = 'Failed to load: '+ (e.message||e);
+  }
+})();
+</script>
+</body>
+</html>
