@@ -13,8 +13,8 @@ create table if not exists schedule (
   unique (day, role)
 );
 
-alter table staff enable row level security;
-alter table schedule enable row level security;
+alter table staff disable row level security;
+alter table schedule disable row level security;
 
 drop policy if exists "anon all staff" on staff;
 create policy "anon all staff" on staff for all using (true) with check (true);
