@@ -13,11 +13,9 @@ create table if not exists schedule (
   unique (day, role)
 );
 
-alter table staff enable row level security;
-alter table schedule enable row level security;
+grant usage on schema public to anon, authenticated;
+grant all on public.staff to anon, authenticated;
+grant all on public.schedule to anon, authenticated;
 
-drop policy if exists "anon all staff" on staff;
-create policy "anon all staff" on staff for all using (true) with check (true);
-
-drop policy if exists "anon all schedule" on schedule;
-create policy "anon all schedule" on schedule for all using (true) with check (true);
+alter table staff disable row level security;
+alter table schedule disable row level security;
